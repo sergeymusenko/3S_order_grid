@@ -31,8 +31,9 @@ from termcolor import colored
 # GRID settings
 symbol		= 'SOLUSDT' # just for info
 marginAmount= 100	# amount in symbol or USDT
-startPrice	= 100	# start here
-direction	= 1		# -1 or 'SHORT' - or - +1 or "LONG"
+marginInCont= True	# True means contracts, not coins
+startPrice	= 140	# start here
+direction	= -1	# -1 or 'SHORT' - or - +1 or "LONG"
 orders		= 4		# number of orders in grid, must be >=2, there is no sense for >=10
 overlap		= 16	# cover % from start price
 martingale	= 100	# % Martingale, 0 means NO, can be <0
@@ -58,7 +59,7 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 	# print settings
 	if printout:
 		print(f"{colored('3S', 'light_green')} strategy for {colored(symbol, 'light_yellow')} " + colored(direction, dirColor))
-		print(f"    Margin Amount: {marginAmount}")
+		print(f"    Margin Amount: {marginAmount} {'' if not marginInCont else 'contracts'}")
 		print(f"    Start Price  : {startPrice}")
 		print(f"    Orders       : {orders}")
 		print(f"    Overlap      : {overlap}%")
@@ -86,12 +87,13 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 
 	# fill the Grid
 	Grid = {}
+	amountRound = 0 if marginInCont else 4
 	for i in range(0,orders):
 		# price with logarithm
 		price = priceLevels[i]
 		pricePercent = dirSign * abs(100 * (startPrice - price) / startPrice)
 		# order amount with Martingale
-		amount = round(marginAmount * martingaleList[i] / martnglTotal, 4)
+		amount = round(marginAmount * martingaleList[i] / martnglTotal, amountRound)
 		amountPercent = 100 * amount / marginAmount
 		Grid[i] = {
 			'price': price,
@@ -111,7 +113,7 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 			orderAmount = colored(f"{order['amount']}", 'light_yellow')
 			pricePercentStr = f"({order['pricePercent']:.01f}%),"
 			amountPercent = order['amountPercent']
-			print(f"    Order#{i}: price: {orderPrice} {pricePercentStr:9} amount: {orderAmount} ({amountPercent:.01f}%)")
+			print(f"    Order#{i}: price {orderPrice} {pricePercentStr:9} amount {orderAmount} ({amountPercent:.01f}%)")
 
 	return Grid
 

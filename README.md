@@ -7,7 +7,12 @@ For your Order Grid you can set start price, direction SHORT or LONG, price spre
 of orders and total margin for position.<br>
 Also you can set Martingale in % and logarithmic orders offset coefficient.<br>
 You can just print it in console or use this code as a module to get order grid as a dictionary
-then you can use it to set limit orders at real Crypto Exchange.<br>
+then you can use it to set limit orders at real Crypto Exchange.
+
+Small note about SHORT/LONG. This is a DCA strategy so if you plan to open LONG position
+you need "SHORT" price grid. Then you start position gaining while price goes down. And vice versa
+for SHORT position you need "LONG" price grid.
+
 Have a good profit!
 
 https://github.com/sergeymusenko/3S_order_grid
