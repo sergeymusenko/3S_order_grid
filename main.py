@@ -33,7 +33,7 @@ symbol		= 'SOLUSDT' # just for info
 marginAmount= 100	# amount in symbol or USDT
 marginInCont= True	# True means contracts, not coins
 startPrice	= 140	# start here
-direction	= -1	# -1 or 'SHORT' - or - +1 or "LONG"
+direction	= 1		# -1='SHORT', 1="LONG"
 orders		= 4		# number of orders in grid, must be >=2, there is no sense for >=10
 overlap		= 16	# cover % from start price
 martingale	= 100	# % Martingale, 0 means NO, can be <0
@@ -46,7 +46,7 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 	startPrice = float(startPrice)
 	direction = 'SHORT' if direction=='SHORT' or direction<0  else 'LONG'
 	dirColor = 'light_red' if direction=='SHORT' else 'light_green'
-	dirSign = -1 if direction=='SHORT' else 1
+	dirSign = 1 if direction=='SHORT' else -1 # LONG position needs SHORT grid
 	orders = int(orders)
 	orders = orders if orders>=2 else 2
 	overlap = float(overlap)
@@ -88,6 +88,9 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 	# fill the Grid
 	Grid = {}
 	amountRound = 0 if marginInCont else 4
+	amountLen = 0 # get longest amount string
+	positionAmount = 0 # in coins
+	positionValue = 0 # in base
 	for i in range(0,orders):
 		# price with logarithm
 		price = priceLevels[i]
@@ -95,25 +98,31 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 		# order amount with Martingale
 		amount = round(marginAmount * martingaleList[i] / martnglTotal, amountRound)
 		amountPercent = 100 * amount / marginAmount
+		amountLen = amountLen if len(str(amount)) < amountLen else len(str(amount)) 
+		# position price
+		positionAmount += amount # total in coins
+		positionValue += amount * price # total in base
 		Grid[i] = {
 			'price': price,
 			'pricePercent': pricePercent,
 			'amount': amount,
 			'amountPercent': amountPercent,
+			'positionPrice': positionValue / positionAmount,
 		}
 
 	# print out orders
 	if printout:
-		print(colored("Grid:", 'light_green'))
+		print(colored("Grid", 'light_green') + ':')
 		priceLen = 1 + len(str(startPrice))
 		priceDec = 1 + len(str(startPrice).split('.')[1])
 		for i in Grid:
 			order = Grid[i]
 			orderPrice = colored(f"{order['price']:{priceLen}.0{priceDec}f}", 'light_yellow')
-			orderAmount = colored(f"{order['amount']}", 'light_yellow')
+			orderAmount = colored(f"{order['amount']:{amountLen}}", 'light_yellow')
 			pricePercentStr = f"({order['pricePercent']:.01f}%),"
 			amountPercent = order['amountPercent']
-			print(f"    Order#{i}: price {orderPrice} {pricePercentStr:9} amount {orderAmount} ({amountPercent:.01f}%)")
+			positionPrice = colored(f"{order['positionPrice']:{priceLen}.0{priceDec}f}", 'light_yellow')
+			print(f"    Order#{i}: price {orderPrice} {pricePercentStr:9} amount {orderAmount} ({amountPercent:4.01f}%), DCA price {positionPrice}")
 
 	return Grid
 
