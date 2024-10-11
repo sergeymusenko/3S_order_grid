@@ -30,45 +30,49 @@ from termcolor import colored
 
 # GRID settings
 symbol		= 'SOLUSDT' # just for info
-marginAmount= 100	# amount in symbol or USDT
-marginInCont= True	# True means contracts, not coins
+marginAmount= 1000	# amount in symbol or USDT
+marginInCont= 0		# True means contracts, not coins
 startPrice	= 140	# start here
 direction	= 1		# -1='SHORT', 1="LONG"
 orders		= 4		# number of orders in grid, must be >=2, there is no sense for >=10
 overlap		= 16	# cover % from start price
 martingale	= 100	# % Martingale, 0 means NO, can be <0
-logarithm	= 1.2	# price amount logarithm, 1 means NO, must be >=0.1 and <=2.9
+logarithm	= 1.4	# price amount logarithm, 1 means NO, must be >=0.1 and <=2.9
+minOrdAmount= 100	# calc grid starting with this, not with zero
 
-
-def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martingale=1, logarithm=1, printout=True):
+def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martingale=1, logarithm=1, minOrdAmount=0, printout=True):
 	# prepare settings
 	marginAmount = float(marginAmount)
 	startPrice = float(startPrice)
-	direction = 'SHORT' if direction=='SHORT' or direction<0  else 'LONG'
-	dirColor = 'light_red' if direction=='SHORT' else 'light_green'
-	dirSign = 1 if direction=='SHORT' else -1 # LONG position needs SHORT grid
+	direction = -1 if direction < 0  else 1
+	dirColor = 'light_red' if direction < 0 else 'light_green'
+	dirText = 'SHORT' if direction < 0  else 'LONG'
+	dirSign = 1 if direction < 0 else -1 # LONG position needs SHORT grid
 	orders = int(orders)
-	orders = orders if orders>=2 else 2
+	orders = orders if orders >= 2 else 2
 	overlap = float(overlap)
 	martingale = float(martingale)
-	martingaleRev = False if martingale>=0 else True
+	martingaleRev = False if martingale >= 0 else True
 	martingale = abs(martingale)
 	logarithm = abs(float(logarithm))
-	logarithm = logarithm if logarithm>=0.1 and logarithm<=2.9 else 1
+	logarithm = logarithm if logarithm >= 0.1 and logarithm <= 2.9 else 1
+	minOrdAmount = float(minOrdAmount) if minOrdAmount < orders * marginAmount and minOrdAmount > 0 else 0
 
 	# print settings
 	if printout:
-		print(f"{colored('3S', 'light_green')} strategy for {colored(symbol, 'light_yellow')} " + colored(direction, dirColor))
+		print(f"{colored('3S', 'light_green')} strategy for {colored(symbol, 'light_yellow')} " + colored(dirText, dirColor))
 		print(f"    Margin Amount: {marginAmount} {'' if not marginInCont else 'contracts'}")
 		print(f"    Start Price  : {startPrice}")
 		print(f"    Orders       : {orders}")
 		print(f"    Overlap      : {overlap}%")
 		print(f"    Martingale   : {martingale}%")
 		print(f"    Logarithm    : {logarithm}")
+		if minOrdAmount > 0:
+			print(f"    minOrd Amount: {minOrdAmount}, it means Margin Amount will be DIFFERENT")
 
 	# prepare the Martingale
 	martingaleList = []
-	martingaleCur = 100.
+	martingaleCur = 100. # 1st order is 100%
 	martnglTotal = 0.
 	for i in range(0,orders):
 		martingaleList.append(martingaleCur)
@@ -95,8 +99,11 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 		# price with logarithm
 		price = priceLevels[i]
 		pricePercent = dirSign * abs(100 * (startPrice - price) / startPrice)
+		# recalc order amounts to minOrdAmount
+		if minOrdAmount > 0 and i == 0: # yes, marginAmount will be bigger!
+			minOrdAmount -= marginAmount * martingaleList[i] / martnglTotal
 		# order amount with Martingale
-		amount = round(marginAmount * martingaleList[i] / martnglTotal, amountRound)
+		amount = round(minOrdAmount + marginAmount * martingaleList[i] / martnglTotal, amountRound)
 		amountPercent = 100 * amount / marginAmount
 		amountLen = amountLen if len(str(amount)) < amountLen else len(str(amount)) 
 		# position price
@@ -118,18 +125,20 @@ def getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martin
 		for i in Grid:
 			order = Grid[i]
 			orderPrice = colored(f"{order['price']:{priceLen}.0{priceDec}f}", 'light_yellow')
-			orderAmount = colored(f"{order['amount']:{amountLen}}", 'light_yellow')
+			orderAmount = colored(f"{order['amount']:{amountLen}.0{amountRound}f}", 'light_yellow')
 			pricePercentStr = f"({order['pricePercent']:.01f}%),"
 			amountPercent = order['amountPercent']
 			positionPrice = colored(f"{order['positionPrice']:{priceLen}.0{priceDec}f}", 'light_yellow')
-			print(f"    Order#{i}: price {orderPrice} {pricePercentStr:9} amount {orderAmount} ({amountPercent:4.01f}%), DCA price {positionPrice}")
+			print(f"    Order#{i}: price {orderPrice} {pricePercentStr:9} amount {orderAmount} ({amountPercent:4.01f}%), position price {positionPrice}")
+		if minOrdAmount != 0:
+			print(f"    * Margin Amount is {positionAmount} because of minOrd Amount")
 
 	return Grid
 
 
 if __name__ == '__main__':
 	# call function, it returns grid as dictionary
-	Grid = getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martingale, logarithm)
+	Grid = getGrid(symbol, marginAmount, startPrice, direction, orders, overlap, martingale, logarithm, minOrdAmount)
 	# and now you can use Grid and open real Limit Orders at Exchange...
 
 # that's all folks!
