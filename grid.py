@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """\
-grid.py - Build Limit Order Grid for 3S Crypto Trading Strategy. Print results. Return Orders Dictionary
+grid.py - Build Limit Order Grid for 3S Crypto Trading Strategy.
+Print results. Return Orders Dictionary.
 
 Спасибо каналу 'Не Наблюдатель'! Смотри https://www.youtube.com/watch?v=tODWA2E27uE
 "БЕСПРОИГРЫШНАЯ СТРАТЕГИЯ 2024 ДЛЯ ФЬЮЧЕРСОВ"
@@ -12,7 +13,7 @@ grid.py - Build Limit Order Grid for 3S Crypto Trading Strategy. Print results. 
 """
 
 
-__project__  = "Build Limit Order Grid, print results, rturn dictionary"
+__project__  = "Build Limit Order Grid for 3S Crypto Trading Strategy"
 __part__     = 'Grid module'
 __author__   = "Sergey V Musenko"
 __email__    = "sergey@musenko.com"
@@ -31,6 +32,7 @@ from termcolor import colored
 def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, overlap, martingale=1, logarithm=1, minOrdAmount=0, printout=True):
 	# prepare settings
 	marginAmount = float(marginAmount)
+	marginInCont = bool(marginInCont)
 	startPrice = float(startPrice)
 	direction = -1 if direction < 0  else 1
 	dirColor = 'light_red' if direction < 0 else 'light_green'
@@ -45,6 +47,7 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 	logarithm = abs(float(logarithm))
 	logarithm = logarithm if logarithm >= 0.1 and logarithm <= 2.9 else 1
 	minOrdAmount = float(minOrdAmount) if minOrdAmount < orders * marginAmount and minOrdAmount > 0 else 0
+	amountRound = 0 if marginInCont else 4
 
 	# print settings
 	if printout:
@@ -79,7 +82,6 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 
 	# fill the Grid
 	Grid = {}
-	amountRound = 0 if marginInCont else 4
 	amountLen = 0 # get longest amount string
 	positionAmount = 0 # in coins
 	positionValue = 0 # in base
@@ -98,11 +100,11 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 		positionAmount += amount # total in coins
 		positionValue += amount * price # total in base
 		Grid[i] = {
-			'price': price,
-			'pricePercent': pricePercent,
-			'amount': amount,
-			'amountPercent': amountPercent,
-			'positionPrice': positionValue / positionAmount,
+			'price': price, # float
+			'pricePercent': pricePercent, # float
+			'amount': amount, # float
+			'amountPercent': amountPercent, # float
+			'positionPrice': positionValue / positionAmount, # float
 		}
 
 	# print out orders
@@ -125,7 +127,7 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 
 
 if __name__ == '__main__':
-	print('Test this module:')
+	print(f'{__project__}\n{__part__}\nTest this module:')
 	# test data
 	symbol		= 'BTCUSDT' # just for info
 	startPrice	= 60000	# start here

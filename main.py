@@ -6,7 +6,7 @@ Use modules to prepare grid and creat limit orders at Crypto Exchange
 """
 
 
-__project__  = "Build Limit Order Grid, print results"
+__project__  = "Build Limit Order Grid for 3S Crypto Trading Strategy"
 __part__     = 'Main script'
 __author__   = "Sergey V Musenko"
 __email__    = "sergey@musenko.com"
