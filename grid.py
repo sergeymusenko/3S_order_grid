@@ -29,8 +29,8 @@ import math
 from termcolor import colored
 
 
-def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, overlap, martingale=1, logarithm=1, minOrdAmount=0, printout=True):
-	# prepare settings
+def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, overlap, martingale=1, logarithm=1, firstOrdAmnt=0, printout=True):
+	# prepare parameters
 	marginAmount = float(marginAmount)
 	marginInCont = bool(marginInCont)
 	startPrice = float(startPrice)
@@ -41,25 +41,23 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 	orders = int(orders)
 	orders = orders if orders >= 2 else 2
 	overlap = float(overlap)
-	martingale = float(martingale)
-	martingaleRev = False if martingale >= 0 else True
-	martingale = abs(martingale)
+	martingale = abs(float(martingale))
 	logarithm = abs(float(logarithm))
 	logarithm = logarithm if logarithm >= 0.1 and logarithm <= 2.9 else 1
-	minOrdAmount = float(minOrdAmount) if minOrdAmount < orders * marginAmount and minOrdAmount > 0 else 0
-	amountRound = 0 if marginInCont else 4
+	firstOrdAmnt = float(firstOrdAmnt)
+	amountRound = 0 if marginInCont else 4 # int if Amount in Contracts
 
 	# print settings
 	if printout:
 		print(f"{colored('3S', 'light_green')} strategy for {colored(symbol, 'light_yellow')} " + colored(dirText, dirColor))
 		print(f"    Margin Amount: {marginAmount} {'' if not marginInCont else 'contracts'}")
+		if firstOrdAmnt > 0:
+			print(f"    FirstOrd Amnt: {firstOrdAmnt}, it means Margin Amount", colored("will be DIFFERENT", attrs=['underline']))
 		print(f"    Start Price  : {startPrice}")
 		print(f"    Orders       : {orders}")
 		print(f"    Overlap      : {overlap}%")
 		print(f"    Martingale   : {martingale}%")
 		print(f"    Logarithm    : {logarithm}")
-		if minOrdAmount > 0:
-			print(f"    minOrd Amount: {minOrdAmount}, it means Margin Amount will be DIFFERENT")
 
 	# prepare the Martingale
 	martingaleList = []
@@ -69,10 +67,10 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 		martingaleList.append(martingaleCur)
 		martnglTotal += martingaleCur
 		martingaleCur += martingaleCur * martingale / 100
-	if martingaleRev:
+	if martingale < 0: # for negative Martingale, but we do not use it yet...
 		martingaleList.reverse()
 
-	# prepare logarithm price levels
+	# prepare logarithmic price levels
 	priceLevels = []
 	endPrice = startPrice * (1 + dirSign * overlap / 100)
 	startLog = math.log10(startPrice)
@@ -83,28 +81,31 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 	# fill the Grid
 	Grid = {}
 	amountLen = 0 # get longest amount string
-	positionAmount = 0 # in coins
-	positionValue = 0 # in base
+	positionsSymbol = 0 # total in Symbol
+	positionsUSDT = 0 # total in USDT
+	firstOrdAmntWeight = firstOrdAmnt / martingaleList[0] # will use it to calc amount from martingaleList
 	for i in range(0,orders):
 		# price with logarithm
 		price = priceLevels[i]
 		pricePercent = dirSign * abs(100 * (startPrice - price) / startPrice)
 		# recalc order amounts to minOrdAmount
-		if minOrdAmount > 0 and i == 0: # yes, marginAmount will be bigger!
-			minOrdAmount -= marginAmount * martingaleList[i] / martnglTotal
 		# order amount with Martingale
-		amount = round(minOrdAmount + marginAmount * martingaleList[i] / martnglTotal, amountRound)
-		amountPercent = 100 * amount / marginAmount
+		if firstOrdAmnt: # calculation based on First Order Amount and Martingale
+			amount = round(firstOrdAmntWeight * martingaleList[i], amountRound)
+			amountPercent = 100 * martingaleList[i] / martnglTotal
+		else: # calculation based on total Margin Amount and Martingale
+			amount = round(marginAmount * martingaleList[i] / martnglTotal, amountRound)
+			amountPercent = 100 * amount / marginAmount
 		amountLen = amountLen if len(str(amount)) < amountLen else len(str(amount)) 
 		# position price
-		positionAmount += amount # total in coins
-		positionValue += amount * price # total in base
+		positionsUSDT += amount # total in USDT
+		positionsSymbol += amount * price # total in Symbol
 		Grid[i] = {
 			'price': price, # float
 			'pricePercent': pricePercent, # float
 			'amount': amount, # float
 			'amountPercent': amountPercent, # float
-			'positionPrice': positionValue / positionAmount, # float
+			'positionPrice': positionsSymbol / positionsUSDT, # float, average Position Price
 		}
 
 	# print out orders
@@ -112,33 +113,39 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 		print(colored("Grid", 'light_green') + ':')
 		priceLen = 1 + len(str(startPrice))
 		priceDec = 1 + len(str(startPrice).split('.')[1])
+		checkPercents = 0
 		for i in Grid:
 			order = Grid[i]
 			orderPrice = colored(f"{order['price']:{priceLen}.0{priceDec}f}", 'light_yellow')
 			orderAmount = colored(f"{order['amount']:{amountLen}.0{amountRound}f}", 'light_yellow')
 			pricePercentStr = f"({order['pricePercent']:.01f}%),"
 			amountPercent = order['amountPercent']
+			# checkPercents += amountPercent
 			positionPrice = colored(f"{order['positionPrice']:{priceLen}.0{priceDec}f}", 'light_yellow')
 			print(f"    Order#{i}: price {orderPrice} {pricePercentStr:9} amount {orderAmount} ({amountPercent:4.01f}%), position price {positionPrice}")
-		if minOrdAmount != 0:
-			print(f"    * Margin Amount is {positionAmount} because of minOrd Amount")
+		if firstOrdAmnt:
+			print(f"    Margin Amount is {colored(f'{positionsUSDT}', 'light_yellow')} because of First Order Amount is {firstOrdAmnt}")
+		if checkPercents:
+			print(f"check total amount percent: {checkPercents}")
 
 	return Grid
 
 
 if __name__ == '__main__':
 	print(f'{__project__}\n{__part__}\nTest this module:')
-	# test data
+
+	# testing:
 	symbol		= 'BTCUSDT' # just for info
-	startPrice	= 60000	# start here
-	marginAmount= 1000	# amount in symbol or USDT
-	marginInCont= 0		# True means contracts, not coins
+	startPrice	= 70000		# start at price
+	marginAmount= 1000	# amount in Symbol or USDT
+	marginInCont= 0		# True means amount in Contracts, not Coins/USDT
 	direction	= 1		# -1='SHORT', 1="LONG"
 	orders		= 4		# number of orders in grid, must be >=2, there is no sense for >=10
 	overlap		= 16	# cover % from start price
-	martingale	= 100	# % Martingale, 0 means NO, can be <0
-	logarithm	= 1.6	# price amount logarithm, 1 means NO, must be >=0.1 and <=2.9
-	minOrdAmount= 0		# calc grid starting with this, not with zero
+	martingale	= 100	# % Martingale, 0 means NO
+	logarithm	= 1.6	# price offset is logarithmic, 1 means NOT, must be >=0.1 and <=2.9
+	firstOrdAmnt= 0		# calc grid starting with this 1st order, total Margin Amount will be different!
+
 	# call getGrid()
-	getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, overlap, martingale, logarithm, minOrdAmount)
+	getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, overlap, martingale, logarithm, firstOrdAmnt)
 	# that's all folks!
