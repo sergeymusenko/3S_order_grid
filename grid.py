@@ -113,30 +113,30 @@ def getGrid(symbol, marginAmount, marginInCont, startPrice, direction, orders, o
 		print(colored("Grid", 'light_green') + ':')
 		priceLen = 1 + len(str(startPrice))
 		priceDec = 1 + len(str(startPrice).split('.')[1])
-		checkPercents = 0
+		checkPercenttotal = 0
 		for i in Grid:
 			order = Grid[i]
 			orderPrice = colored(f"{order['price']:{priceLen}.0{priceDec}f}", 'light_yellow')
 			orderAmount = colored(f"{order['amount']:{amountLen}.0{amountRound}f}", 'light_yellow')
 			pricePercentStr = f"({order['pricePercent']:.01f}%),"
 			amountPercent = order['amountPercent']
-			# checkPercents += amountPercent
+			# checkPercenttotal += amountPercent
 			positionPrice = colored(f"{order['positionPrice']:{priceLen}.0{priceDec}f}", 'light_yellow')
 			print(f"    Order#{i}: price {orderPrice} {pricePercentStr:9} amount {orderAmount} ({amountPercent:4.01f}%), position price {positionPrice}")
 		if firstOrdAmnt:
 			print(f"    Margin Amount is {colored(f'{positionsUSDT}', 'light_yellow')} because of First Order Amount is {firstOrdAmnt}")
-		if checkPercents:
-			print(f"check total amount percent: {checkPercents}")
+		if checkPercenttotal:
+			print(f"check total amount percent: {checkPercenttotal}")
 
 	return Grid
 
 
 if __name__ == '__main__':
-	print(f'{__project__}\n{__part__}\nTest this module:')
+	print(f'{__project__}\n{__part__} testing:')
 
 	# testing:
 	symbol		= 'BTCUSDT' # just for info
-	startPrice	= 70000		# start at price
+	startPrice	= 75000		# start at price
 	marginAmount= 1000	# amount in Symbol or USDT
 	marginInCont= 0		# True means amount in Contracts, not Coins/USDT
 	direction	= 1		# -1='SHORT', 1="LONG"

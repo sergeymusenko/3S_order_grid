@@ -24,8 +24,8 @@ from grid import *
 
 
 # GRID settings
-symbol		= 'BTCUSDT' # just for info
-startPrice	= 70000		# start at price
+symbol		= 'SOLUSDT' # just for info
+startPrice	= 140		# start at price
 marginAmount= 1000	# amount in Symbol or USDT
 marginInCont= 0		# True means amount in Contracts, not Coins/USDT
 direction	= 1		# -1='SHORT', 1="LONG"
@@ -33,7 +33,7 @@ orders		= 4		# number of orders in grid, must be >=2, there is no sense for >=10
 overlap		= 16	# cover % from start price
 martingale	= 60	# % Martingale, 0 means NO
 logarithm	= 1.4	# price offset is logarithmic, 1 means NOT, must be >=0.1 and <=2.9
-firstOrdAmnt= 0		# calc grid starting with this 1st order, total Margin Amount will be different!
+firstOrdAmnt= 150	# calc grid starting with this 1st order, total Margin Amount will be different!
 
 
 # ordering settings
